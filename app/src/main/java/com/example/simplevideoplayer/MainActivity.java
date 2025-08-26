@@ -203,7 +203,6 @@ public class MainActivity extends AppCompatActivity {
         tvGestureInfo.setText("音量: " + volumePercent + "%");
         tvGestureInfo.setVisibility(View.VISIBLE);
     }
-
     // 调节进度
     private void adjustProgress(float deltaX) {
         if (videoView.getDuration() <= 0) return;
