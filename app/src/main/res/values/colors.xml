@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- 主题强调色（用于播放按钮、进度条，推荐鲜明但不刺眼的颜色） -->
+    <color name="colorAccent">#FF4081</color> <!-- 粉色系，也可替换为 #2196F3（蓝色）、#FFC107（黄色）等 -->
+
+    <!-- 辅助颜色（适配播放器其他控件） -->
+    <color name="control_bar_bg">#80000000</color> <!-- 控制栏半透明黑色背景 -->
+    <color name="text_white">@android:color/white</color> <!-- 白色文字（复用系统颜色） -->
+    <color name="progress_thumb">#FFFFFF</color> <!-- 进度条滑块白色 -->
 </resources>
