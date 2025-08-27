@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 1. 按下状态（点击按钮时）：红色 -->
+    <item android:state_pressed="true" android:color="#3573D0" />
+    <!-- 2. 焦点状态（选中按钮时）：绿色 -->
+    <item android:state_focused="true" android:color="#84A0D1" />
+    <!-- 3. 正常状态（无焦点、未按下）：蓝色 -->
+    <item android:color="#ADADBF" />
+</selector>

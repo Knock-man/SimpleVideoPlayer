@@ -8,3 +8,4 @@
     <color name="text_white">@android:color/white</color> <!-- 白色文字（复用系统颜色） -->
     <color name="progress_thumb">#FFFFFF</color> <!-- 进度条滑块白色 -->
 </resources>
+

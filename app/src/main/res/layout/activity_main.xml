@@ -45,7 +45,8 @@
                 android:text="播放"
                 android:nextFocusUp="@+id/videoView"
                 android:nextFocusLeft="@+id/btnOnline"
-                android:nextFocusRight="@+id/btnPause" />
+                android:nextFocusRight="@+id/btnPause"
+                android:backgroundTint="@color/btn_state_list"/>
 
             <Button
                 android:id="@+id/btnPause"
@@ -57,7 +58,8 @@
                 android:text="暂停"
                 android:nextFocusUp="@+id/videoView"
                 android:nextFocusLeft="@+id/btnPlay"
-                android:nextFocusRight="@+id/btnStop" />
+                android:nextFocusRight="@+id/btnStop"
+                android:backgroundTint="@color/btn_state_list"/>
 
             <Button
                 android:id="@+id/btnStop"
@@ -69,7 +71,8 @@
                 android:text="停止"
                 android:nextFocusUp="@+id/videoView"
                 android:nextFocusLeft="@+id/btnPause"
-                android:nextFocusRight="@id/btnSelect" />
+                android:nextFocusRight="@id/btnSelect"
+                android:backgroundTint="@color/btn_state_list"/>
 
             <Button
                 android:id="@+id/btnSelect"
@@ -81,7 +84,8 @@
                 android:text="本地"
                 android:nextFocusUp="@+id/videoView"
                 android:nextFocusLeft="@+id/btnStop"
-                android:nextFocusRight="@+id/btnOnline" />
+                android:nextFocusRight="@+id/btnOnline"
+                android:backgroundTint="@color/btn_state_list"/>
 
             <Button
                 android:id="@+id/btnOnline"
@@ -93,7 +97,9 @@
                 android:text="在线"
                 android:nextFocusUp="@+id/btnPause"
                 android:nextFocusLeft="@+id/btnSelect"
-                android:nextFocusRight="@+id/btnPlay"/>
+                android:nextFocusRight="@+id/btnPlay"
+                android:backgroundTint="@color/btn_state_list"/>
+
         </LinearLayout>
     </LinearLayout>
 
