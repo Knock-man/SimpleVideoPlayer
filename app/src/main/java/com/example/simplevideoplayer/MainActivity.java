@@ -1,13 +1,17 @@
 package com.example.simplevideoplayer;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
@@ -17,10 +21,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "VideoPlayer";
     private VideoView videoView;
     private Button btnPlay, btnPause, btnStop, btnSelect, btnOnline;
     private TextView tvStatus;
-    private TextView tvGestureInfo; // 显示手势操作信息
+    private TextView tvGestureInfo;
 
     private GestureDetector gestureDetector;
     private AudioManager audioManager;
@@ -34,10 +39,80 @@ public class MainActivity extends AppCompatActivity {
     private int initialVolume;
     private int maxVolume;
     private int currentVolume;
+    private boolean isFullscreen = false;
+
+    @SuppressLint("GestureBackNavigation")
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        Log.d(TAG, "Key pressed: " + keyCode);
+
+        // 视频播放状态下的按键处理
+        if (videoView != null && videoView.isPlaying()) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_DPAD_UP:
+                    increaseVolume();//加大音量
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                    decreaseVolume();//降低音量
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    seekBackward();//后退五秒
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    seekForward();//前进五秒
+                    return true;
+                case KeyEvent.KEYCODE_ENTER:
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                    togglePlayPause();
+                    return true;
+                case KeyEvent.KEYCODE_BACK:
+                    if (isFullscreen) {
+                        toggleFullScreen();
+                        return true;
+                    }
+                    break;
+                case KeyEvent.KEYCODE_MENU:
+                    toggleControlsVisibility();
+                    return true;
+                case KeyEvent.KEYCODE_VOLUME_UP:
+                    increaseVolume();
+                    return true;
+                case KeyEvent.KEYCODE_VOLUME_DOWN:
+                    decreaseVolume();
+                    return true;
+                case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                    togglePlayPause();
+                    return true;
+                case KeyEvent.KEYCODE_MEDIA_STOP:
+                    videoView.stopPlayback();
+                    updateStatus("已停止");
+                    return true;
+            }
+        }
+
+        // 布局文件已定义焦点顺序，这里仅处理特殊情况
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+                performClickOnFocusedView();
+                return true;
+            case KeyEvent.KEYCODE_BACK:
+                if (isFullscreen) {
+                    toggleFullScreen();
+                } else {
+                    finish();
+                }
+                return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
         initViews();
@@ -47,6 +122,10 @@ public class MainActivity extends AppCompatActivity {
         // 初始化音频管理器
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+
+        // 设置初始焦点
+        btnPlay.requestFocus();
     }
 
     private void initViews() {
@@ -69,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
                 videoView.start();
             }
             updateStatus("正在播放");
+            videoView.requestFocus(); // 切换焦点到视频区域
         });
 
         // 暂停按钮
@@ -77,26 +157,38 @@ public class MainActivity extends AppCompatActivity {
                 videoView.pause();
                 updateStatus("已暂停");
             }
+            videoView.requestFocus();
         });
 
         // 停止按钮
         btnStop.setOnClickListener(v -> {
             videoView.stopPlayback();
             updateStatus("已停止");
+            btnPlay.requestFocus(); // 停止后焦点回到播放按钮
         });
 
         // 选择本地视频
-        btnSelect.setOnClickListener(v -> selectLocalVideo());
+        btnSelect.setOnClickListener(v -> {
+            selectLocalVideo();
+            btnSelect.requestFocus();
+        });
 
         // 播放在线视频
-        btnOnline.setOnClickListener(v -> playOnlineVideo());
+        btnOnline.setOnClickListener(v -> {
+            playOnlineVideo();
+            videoView.requestFocus();
+        });
+
+        // 视频区域点击
+        videoView.setOnClickListener(v -> togglePlayPause());
     }
+
+    // 其他方法保持不变...
 
     private void setupGestureControl() {
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onDown(MotionEvent e) {
-                // 记录初始值
                 initialBrightness = getWindow().getAttributes().screenBrightness;
                 initialVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
                 return true;
@@ -107,23 +199,18 @@ public class MainActivity extends AppCompatActivity {
                 float deltaX = e2.getX() - e1.getX();
                 float deltaY = e2.getY() - e1.getY();
 
-                // 判断滑动方向和距离
                 if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > SWIPE_THRESHOLD) {
-                    // 垂直滑动 - 调节音量或亮度
                     float screenWidth = getWindowManager().getDefaultDisplay().getWidth();
                     float touchX = e1.getX();
 
                     if (touchX < screenWidth / 2) {
-                        // 屏幕左侧 - 调节亮度
                         adjustBrightness(deltaY);
                     } else {
-                        // 屏幕右侧 - 调节音量
                         adjustVolume(deltaY);
                     }
                     isAdjusting = true;
                     return true;
                 } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > SWIPE_THRESHOLD) {
-                    // 水平滑动 - 调节进度
                     adjustProgress(deltaX);
                     isAdjusting = true;
                     return true;
@@ -133,105 +220,140 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onSingleTapConfirmed(MotionEvent e) {
-                // 单击切换播放/暂停状态
-                if (videoView.isPlaying()) {
-                    videoView.pause();
-                    updateStatus("已暂停");
-                } else {
-                    videoView.start();
-                    updateStatus("正在播放");
-                }
+                togglePlayPause();
                 return true;
             }
 
             @Override
             public boolean onDoubleTap(MotionEvent e) {
-                // 双击切换全屏
                 toggleFullScreen();
                 return true;
             }
 
             @Override
             public void onLongPress(MotionEvent e) {
-                // 长按显示/隐藏控制按钮
                 toggleControlsVisibility();
             }
         });
 
-        // 设置VideoView的触摸监听
         videoView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
 
-            // 滑动结束时隐藏提示信息
             if (event.getAction() == MotionEvent.ACTION_UP && isAdjusting) {
-                tvGestureInfo.setVisibility(View.GONE);
+                tvGestureInfo.postDelayed(() -> tvGestureInfo.setVisibility(View.GONE), 1000);
                 isAdjusting = false;
             }
             return true;
         });
     }
 
-    // 调节亮度
+    //播放和暂停
+    private void togglePlayPause() {
+        if (videoView.isPlaying()) {
+            videoView.pause();
+            updateStatus("已暂停");
+        } else {
+            if (videoView.getCurrentPosition() > 0) {
+                videoView.start();
+                updateStatus("继续播放");
+            }
+        }
+    }
+
+    private void increaseVolume() {
+        currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        if (currentVolume < maxVolume) {
+            currentVolume++;
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, AudioManager.FLAG_SHOW_UI);
+            int volumePercent = (int) (((float) currentVolume / maxVolume) * 100);
+            showTempMessage("音量: " + volumePercent + "%");
+        }
+    }
+
+    private void decreaseVolume() {
+        currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        if (currentVolume > 0) {
+            currentVolume--;
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, AudioManager.FLAG_SHOW_UI);
+            int volumePercent = (int) (((float) currentVolume / maxVolume) * 100);
+            showTempMessage("音量: " + volumePercent + "%");
+        }
+    }
+
+    //后退五秒
+    private void seekBackward() {
+        int currentPos = videoView.getCurrentPosition();
+        int newPos = Math.max(0, currentPos - 5000);
+        videoView.seekTo(newPos);
+        showTempMessage("后退 5 秒");
+    }
+
+    //前进五秒
+    private void seekForward() {
+        int currentPos = videoView.getCurrentPosition();
+        int duration = videoView.getDuration();
+        int newPos = Math.min(duration, currentPos + 5000);
+        videoView.seekTo(newPos);
+        showTempMessage("前进 5 秒");
+    }
+
+    private void showTempMessage(String message) {
+        tvGestureInfo.setText(message);
+        tvGestureInfo.setVisibility(View.VISIBLE);
+        tvGestureInfo.postDelayed(() -> tvGestureInfo.setVisibility(View.GONE), 1000);
+    }
+
     private void adjustBrightness(float deltaY) {
         WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
         float brightness = initialBrightness - (deltaY / getWindowManager().getDefaultDisplay().getHeight());
-
-        // 亮度范围在0.1到1.0之间
         brightness = Math.max(0.1f, Math.min(1.0f, brightness));
-
         layoutParams.screenBrightness = brightness;
         getWindow().setAttributes(layoutParams);
 
-        // 显示亮度信息
         int brightnessPercent = (int) (brightness * 100);
         tvGestureInfo.setText("亮度: " + brightnessPercent + "%");
         tvGestureInfo.setVisibility(View.VISIBLE);
     }
 
-    // 调节音量
     private void adjustVolume(float deltaY) {
         int volume = initialVolume - (int) (deltaY / 10);
-
-        // 音量范围在0到最大音量之间
         volume = Math.max(0, Math.min(maxVolume, volume));
-
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
         currentVolume = volume;
 
-        // 显示音量信息
         int volumePercent = (int) (((float) volume / maxVolume) * 100);
         tvGestureInfo.setText("音量: " + volumePercent + "%");
         tvGestureInfo.setVisibility(View.VISIBLE);
     }
-    // 调节进度
+
     private void adjustProgress(float deltaX) {
         if (videoView.getDuration() <= 0) return;
 
         int currentPosition = videoView.getCurrentPosition();
         int duration = videoView.getDuration();
         int newPosition = currentPosition + (int) (deltaX * 10);
-
-        // 进度范围在0到视频总时长之间
         newPosition = Math.max(0, Math.min(duration, newPosition));
-
         videoView.seekTo(newPosition);
 
-        // 显示进度信息
         int progressPercent = (int) (((float) newPosition / duration) * 100);
         tvGestureInfo.setText("进度: " + progressPercent + "%");
         tvGestureInfo.setVisibility(View.VISIBLE);
     }
 
-    // 切换全屏
     private void toggleFullScreen() {
-        if (getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+        if (isFullscreen) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            isFullscreen = false;
+            updateStatus("已退出全屏");
         } else {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            isFullscreen = true;
+            updateStatus("已进入全屏");
         }
     }
 
-    // 切换控制按钮可见性
     private void toggleControlsVisibility() {
         int visibility = (btnPlay.getVisibility() == View.VISIBLE) ? View.GONE : View.VISIBLE;
         btnPlay.setVisibility(visibility);
@@ -250,20 +372,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void playOnlineVideo() {
-        // 使用示例视频（Big Buck Bunny）
         String sampleUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-
         videoView.setVideoURI(Uri.parse(sampleUrl));
         videoView.start();
         updateStatus("正在加载在线视频...");
 
-        // 设置准备完成监听
         videoView.setOnPreparedListener(mp -> {
             updateStatus("在线视频准备就绪，正在播放");
             mp.start();
         });
 
-        // 设置错误监听
         videoView.setOnErrorListener((mp, what, extra) -> {
             updateStatus("播放错误: " + what);
             return true;
@@ -287,7 +405,6 @@ public class MainActivity extends AppCompatActivity {
 
             videoView.setOnPreparedListener(mp -> {
                 updateStatus("视频准备就绪，点击播放");
-                // 获取视频信息
                 int duration = mp.getDuration();
                 tvStatus.setText(String.format("视频准备就绪 (时长: %d秒)", duration / 1000));
             });
@@ -311,6 +428,24 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         if (videoView != null) {
             videoView.stopPlayback();
+        }
+    }
+
+    @SuppressLint("GestureBackNavigation")
+    @Override
+    public void onBackPressed() {
+        if (isFullscreen) {
+            toggleFullScreen();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    // 触发当前焦点视图的点击事件
+    private void performClickOnFocusedView() {
+        View current = getCurrentFocus();
+        if (current != null) {
+            current.performClick();
         }
     }
 }

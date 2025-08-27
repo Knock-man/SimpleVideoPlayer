@@ -8,7 +8,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clickable="true"
-        android:focusable="true" />
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusDown="@+id/btnPlay" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -38,35 +40,60 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="播放" />
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:text="播放"
+                android:nextFocusUp="@+id/videoView"
+                android:nextFocusLeft="@+id/btnOnline"
+                android:nextFocusRight="@+id/btnPause" />
 
             <Button
                 android:id="@+id/btnPause"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="暂停" />
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:text="暂停"
+                android:nextFocusUp="@+id/videoView"
+                android:nextFocusLeft="@+id/btnPlay"
+                android:nextFocusRight="@+id/btnStop" />
 
             <Button
                 android:id="@+id/btnStop"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="停止" />
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:text="停止"
+                android:nextFocusUp="@+id/videoView"
+                android:nextFocusLeft="@+id/btnPause"
+                android:nextFocusRight="@id/btnSelect" />
 
             <Button
                 android:id="@+id/btnSelect"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="本地" />
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:text="本地"
+                android:nextFocusUp="@+id/videoView"
+                android:nextFocusLeft="@+id/btnStop"
+                android:nextFocusRight="@+id/btnOnline" />
 
             <Button
                 android:id="@+id/btnOnline"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="在线" />
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:text="在线"
+                android:nextFocusUp="@+id/btnPause"
+                android:nextFocusLeft="@+id/btnSelect"
+                android:nextFocusRight="@+id/btnPlay"/>
         </LinearLayout>
     </LinearLayout>
 
